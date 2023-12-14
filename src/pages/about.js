@@ -21,12 +21,17 @@ const SecondPage = () => {
         <h2>{companyName}</h2>
         <p>{siteDescription}</p>
         <p>
-          <a href={companyUrl}>View on Github</a>
+          <a href="https://github.com/UserSpy/349CovidDashboardFinalProject">
+            View on Github
+          </a>
         </p>
 
-        <h2>Created By</h2>
+        <h2>Base Code By</h2>
         <p>
           <a href={authorUrl}>{authorName}</a>
+        </p>
+        <p>
+          <a href={companyUrl}>View on Github </a>
         </p>
       </Container>
     </Layout>

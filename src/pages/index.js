@@ -1,4 +1,4 @@
-import React, { useRef, useEffect } from "react";
+import React, { useRef, useEffect, useState } from "react";
 import PropTypes from "prop-types";
 import { Helmet } from "react-helmet";
 import L from "leaflet";
@@ -9,37 +9,38 @@ import { promiseToFlyTo, getCurrentLocation } from "lib/map";
 import Layout from "components/Layout";
 import Container from "components/Container";
 import Map from "components/Map";
+import Dark from "../assets/stylesheets/components/dark.css";
+import table from "../assets/stylesheets/components/table.css";
 
-import axios from 'axios';
+import axios from "axios";
 
-const LOCATION = { lat: 0, lng: 0 };   // middle of the world
-  // { lat: 38.9072, lng: -77.0369 };  // in Los Angeles
+const LOCATION = { lat: 0, lng: 0 }; // middle of the world
+// { lat: 38.9072, lng: -77.0369 };  // in Los Angeles
 
-  const CENTER = [LOCATION.lat, LOCATION.lng];
+const CENTER = [LOCATION.lat, LOCATION.lng];
 const DEFAULT_ZOOM = 2;
 const ZOOM = 10;
 
 const timeToZoom = 2000;
 
-function countryPointToLayer (feature = {}, latlng) { 
+function countryPointToLayer(feature = {}, latlng) {
   const { properties = {} } = feature;
   let updatedFormatted;
   let casesString;
 
-  const {
-    country,
-    updated,
-    cases, 
-    deaths,
-    recovered
-  } = properties;
+  const { country, updated, cases, deaths, recovered } = properties;
 
   casesString = `${cases}`;
 
-  if      (cases > 1000000) { casesString = `${casesString.slice(0, -6)}M+`; }
-  else if (cases > 1000)    { casesString = `${casesString.slice(0, -3)}k+`;  }
-  
-  if (updated)      { updatedFormatted = new Date(updated).toLocaleString(); }
+  if (cases > 1000000) {
+    casesString = `${casesString.slice(0, -6)}M+`;
+  } else if (cases > 1000) {
+    casesString = `${casesString.slice(0, -3)}k+`;
+  }
+
+  if (updated) {
+    updatedFormatted = new Date(updated).toLocaleString();
+  }
 
   const html = `
     <span class="icon-marker">
@@ -58,22 +59,22 @@ function countryPointToLayer (feature = {}, latlng) {
 
   return L.marker(latlng, {
     icon: L.divIcon({
-      className: 'icon',
-      html
+      className: "icon",
+      html,
     }),
-    riseOnHover: true
+    riseOnHover: true,
   });
 }
 
 const MapEffect = ({ markerRef }) => {
-  console.log('in MapEffect...');
+  console.log("in MapEffect...");
   const map = useMap();
 
   useEffect(() => {
     if (!markerRef.current || !map) return;
 
     (async function run() {
-      console.log('about to call axios to get the data...');
+      console.log("about to call axios to get the data...");
 
       // const options = {
       //   method: 'GET',
@@ -85,56 +86,64 @@ const MapEffect = ({ markerRef }) => {
       //   }
       // };
 
-
       const options = {
-        method: 'GET',
-        url: 'https://disease.sh/v3/covid-19/countries',
+        method: "GET",
+        url: "https://disease.sh/v3/covid-19/countries",
         // params: {country: 'China'},    // for one country -- if blank will get all countries
         // headers: {
         //   'Disease.sh': 'disease.sh'
         // }
       };
-      
-      let response; 
-      
-      try { response = await axios.request(options); 
-      } catch (error) { 
-        console.error(error);  
-        return; 
+
+      let response;
+
+      try {
+        response = await axios.request(options);
+      } catch (error) {
+        console.error(error);
+        return;
       }
       console.log(response.data);
       // const rdr = response.data.response;    // for rapidapi
       // const data = rdr;
 
-      const data = response.data;     // for disease.sh
+      const data = response.data; // for disease.sh
       const hasData = Array.isArray(data) && data.length > 0;
-      if (!Array.isArray(data)) { console.log('not an array!'); return; }
-      if (data.length === 0) { console.log('data length is === 0'); }
+      if (!Array.isArray(data)) {
+        console.log("not an array!");
+        return;
+      }
+      if (data.length === 0) {
+        console.log("data length is === 0");
+      }
 
-      if (!hasData) { console.log('No data, sorry!');  return; }
+      if (!hasData) {
+        console.log("No data, sorry!");
+        return;
+      }
 
       const geoJson = {
-        type: 'FeatureCollection',
+        type: "FeatureCollection",
         features: data.map((country = {}) => {
-          const {countryInfo = {} } = country;
+          const { countryInfo = {} } = country;
           const { lat, long: lng } = countryInfo;
           return {
-            type: 'Feature',
+            type: "Feature",
             properties: {
               ...country,
             },
             geometry: {
-              type: 'Point',
-              coordinates: [ lng, lat]
-            }
-          }
-        })
-      }
+              type: "Point",
+              coordinates: [lng, lat],
+            },
+          };
+        }),
+      };
 
-      console.log('geoJson', geoJson);
+      console.log("geoJson", geoJson);
 
-      const geoJsonLayers = new L.GeoJSON(geoJson, { 
-        pointToLayer: countryPointToLayer
+      const geoJsonLayers = new L.GeoJSON(geoJson, {
+        pointToLayer: countryPointToLayer,
       });
       var _map = markerRef.current._map;
       geoJsonLayers.addTo(_map);
@@ -142,7 +151,7 @@ const MapEffect = ({ markerRef }) => {
       const location = await getCurrentLocation().catch(() => LOCATION);
 
       setTimeout(async () => {
-        await promiseToFlyTo(map, { zoom: ZOOM, center: location, });
+        await promiseToFlyTo(map, { zoom: ZOOM, center: location });
       }, timeToZoom);
     })();
   }, [map, markerRef]);
@@ -155,8 +164,25 @@ MapEffect.propTypes = {
 };
 
 const IndexPage = () => {
-  console.log('in IndexPage, before useRef');
+  console.log("in IndexPage, before useRef");
+  const [covidData, setCovidData] = useState([]);
   const markerRef = useRef();
+
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const response = await axios.get(
+          "https://disease.sh/v3/covid-19/countries"
+        );
+        console.log(response.data);
+        setCovidData(response.data);
+      } catch (error) {
+        console.log(error);
+      }
+    };
+
+    fetchData();
+  }, []);
 
   const mapSettings = {
     center: CENTER,
@@ -165,19 +191,49 @@ const IndexPage = () => {
   };
 
   return (
-    <Layout pageName="home">
-      <Helmet><title>Home Page</title></Helmet>
-      {/* do not delete MapEffect and Marker
-             with current code or axios will not run */}
-      <Map {...mapSettings}>
-       <MapEffect markerRef={markerRef} />            
-       <Marker ref={markerRef} position={CENTER} />
-      </Map>
-
-      <Container type="content" className="text-center home-start">
-        <h2>Still Getting Started?</h2>
-      </Container>
-    </Layout>
+    <div className="dark">
+      <Layout pageName="home">
+        <Helmet>
+          <title>Home Page</title>
+        </Helmet>
+        {/* do not delete MapEffect and Marker
+              with current code or axios will not run */}
+        <Map {...mapSettings}>
+          <MapEffect markerRef={markerRef} />
+          <Marker ref={markerRef} position={CENTER} />
+        </Map>
+        <Container
+          type="table"
+          className="text-center home-start table-container"
+        >
+          <h2 className="white-text">Table with Statistics by Country</h2>
+          <table className="white-text">
+            <thead>
+              <tr>
+                <th>Country</th>
+                <th>Cases</th>
+                <th>Deaths</th>
+                <th>Recovered</th>
+              </tr>
+            </thead>
+            <tbody>
+              {covidData.map((countryData) => (
+                <tr key={countryData.country}>
+                  <td>{countryData.country}</td>
+                  <td>{countryData.cases}</td>
+                  <td>{countryData.deaths}</td>
+                  <td>{countryData.recovered}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </Container>
+        <Container
+          type="content"
+          className="text-center home-start"
+        ></Container>
+      </Layout>
+    </div>
   );
 };
 
