@@ -1,8 +1,12 @@
 .table-container {
+    max-height: 500px;
+    max-width: 750px;
+    overflow-y: auto;
     border: 1px solid #ccc;
     border-radius: 5px;
-    overflow: hidden;
     box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+    margin-bottom: 20px;
+    margin-top: 20px;
   }
   
   table {

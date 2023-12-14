@@ -166,6 +166,8 @@ MapEffect.propTypes = {
 const IndexPage = () => {
   console.log("in IndexPage, before useRef");
   const [covidData, setCovidData] = useState([]);
+  const [allData, setAllData] = useState([]);
+  const [statesData, setStatesData] = useState([]);
   const markerRef = useRef();
 
   useEffect(() => {
@@ -176,6 +178,36 @@ const IndexPage = () => {
         );
         console.log(response.data);
         setCovidData(response.data);
+      } catch (error) {
+        console.log(error);
+      }
+    };
+
+    fetchData();
+  }, []);
+
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const response = await axios.get("https://disease.sh/v3/covid-19/all");
+        console.log(response.data);
+        setAllData(response.data);
+      } catch (error) {
+        console.log(error);
+      }
+    };
+
+    fetchData();
+  }, []);
+
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const response = await axios.get(
+          "https://disease.sh/v3/covid-19/states"
+        );
+        console.log(response.data);
+        setStatesData(response.data);
       } catch (error) {
         console.log(error);
       }
@@ -206,23 +238,85 @@ const IndexPage = () => {
           type="table"
           className="text-center home-start table-container"
         >
-          <h2 className="white-text">Table with Statistics by Country</h2>
+          <h2 className="white-text">Total</h2>
           <table className="white-text">
             <thead>
               <tr>
-                <th>Country</th>
                 <th>Cases</th>
                 <th>Deaths</th>
                 <th>Recovered</th>
               </tr>
             </thead>
             <tbody>
+              <td>
+                {allData.cases ? allData.cases.toLocaleString() : allData.cases}
+              </td>
+              <td>
+                {allData.deaths
+                  ? allData.deaths.toLocaleString()
+                  : allData.deaths}
+              </td>
+              <td>
+                {allData.recovered
+                  ? allData.recovered.toLocaleString()
+                  : allData.recovered}
+              </td>
+            </tbody>
+          </table>
+        </Container>
+        <Container
+          type="table"
+          className="text-center home-start table-container"
+        >
+          <h2 className="white-text">Countries</h2>
+          <table className="white-text">
+            <thead>
+              <tr>
+                <th>Country</th>
+                <th>Population</th>
+                <th>Cases</th>
+                <th>Cases Per Million</th>
+                <th>Deaths</th>
+              </tr>
+            </thead>
+            <tbody>
               {covidData.map((countryData) => (
                 <tr key={countryData.country}>
                   <td>{countryData.country}</td>
-                  <td>{countryData.cases}</td>
-                  <td>{countryData.deaths}</td>
-                  <td>{countryData.recovered}</td>
+                  <td>{countryData.population.toLocaleString()}</td>
+                  <td>{countryData.cases.toLocaleString()}</td>
+                  <td>{countryData.casesPerOneMillion.toLocaleString()}</td>
+                  <td>{countryData.deaths.toLocaleString()}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </Container>
+        <Container
+          type="table"
+          className="text-center home-start table-container"
+        >
+          <h2 className="white-text">United States</h2>
+          <table className="white-text">
+            <thead>
+              <tr>
+                <th>State</th>
+                <th>Population</th>
+                <th>Cases</th>
+                <th>Cases Per Million</th>
+                <th>Deaths</th>
+              </tr>
+            </thead>
+            <tbody>
+              {statesData.map((unitedStatesData) => (
+                <tr key={unitedStatesData.state}>
+                  <td>{unitedStatesData.state}</td>
+                  <td>{unitedStatesData.population.toLocaleString()}</td>
+                  <td>{unitedStatesData.cases.toLocaleString()}</td>
+                  <td>
+                    {unitedStatesData.casesPerOneMillion.toLocaleString()}
+                  </td>
+                  <td>{unitedStatesData.deaths.toLocaleString()}</td>
                 </tr>
               ))}
             </tbody>
