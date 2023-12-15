@@ -1,12 +1,12 @@
 .map {
-
   position: relative;
 
   &,
   .map-base {
     width: 100%;
     height: 100%;
-    background: $blue-grey-50;
+    background: #333333; /* grey color */
+    color: #ffffff; /* White text color */
   }
 }
 
@@ -16,20 +16,13 @@
   right: 0;
   bottom: 0;
   left: 0;
-  color: $blue-grey-200;
-  font-family: $font-default;
+  color: #ff6b6b; /* Soft red color */
+  font-family: Georgia, serif; /* Specify Georgia as the font, followed by a generic serif font as a fallback */
   width: 100%;
   height: 4em;
   line-height: 4em;
   text-align: center;
   margin: auto;
-}
-
-.map-marker {
-  &[class*="shadow"] {
-    filter: blur(5px);
-    opacity: .7;
-  }
 }
 
 .icon-marker {
@@ -42,7 +35,8 @@
   height: 4.6em;
   font-size: .7em;
   font-weight: bold;
-  background-color: $red-800;
+  background-color: #ff6b6b; /* Soft red background color */
+  color: #ffffff; /* White text color */
 
   border-radius: 100%;
   box-shadow: 0 2px 5px rgba(black, .9);
@@ -55,14 +49,15 @@
 }
 
 .icon-marker-tooltip {
-  display:  none;
+  display: none;
   position: absolute;
   bottom: 100%;
   width: 16em;
   font-size: 1.4em;
 
   padding: 1em;
-  background-color: $blue-grey-900;
+  background-color: #ff6b6b; /* Soft red background color */
+  color: #ffffff; /* White text color */
   border-radius: .4em;
   margin-bottom: 1em;
   box-shadow: 0 3px 5px rgba(black, .9);
@@ -76,7 +71,7 @@
 
     width: 1.4em;
     height: 1.4em;
-    background-color: $blue-grey-900;
+    background-color: #ff6b6b; /* Soft red background color */
     transform: rotate(45deg);
     margin-left: -.7em;
   }
@@ -92,7 +87,7 @@
     font-size: 1.2em;
     margin: .1em 0;
     font-weight: normal;
-    color: $blue-grey-100;
+    color: #ffffff; /* White text color */
   }
 
   ul,
