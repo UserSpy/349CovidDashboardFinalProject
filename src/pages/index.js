@@ -1,4 +1,8 @@
 import React, { useRef, useEffect, useState } from "react";
+import { Line, Bar } from 'react-chartjs-2';
+import 'chart.js/auto';
+import { Chart, registerables } from 'chart.js';
+
 import PropTypes from "prop-types";
 import { Helmet } from "react-helmet";
 import L from "leaflet";
@@ -22,7 +26,7 @@ const DEFAULT_ZOOM = 2;
 const ZOOM = 10;
 
 const timeToZoom = 2000;
-
+Chart.register(...registerables);
 function countryPointToLayer(feature = {}, latlng) {
   const { properties = {} } = feature;
   let updatedFormatted;
@@ -169,6 +173,25 @@ const IndexPage = () => {
   const [allData, setAllData] = useState([]);
   const [statesData, setStatesData] = useState([]);
   const markerRef = useRef();
+  const [casesChartData, setCasesChartData] = useState({
+    labels: [],
+    datasets: []
+  });
+  
+  const [deathsChartData, setDeathsChartData] = useState({
+    labels: [],
+    datasets: []
+  });
+
+  const [recoveriesChartData, setRecoveriesChartData] = useState({
+    labels: [],
+    datasets: []
+  });
+  
+  const [newCasesBarChartData, setNewCasesBarChartData] = useState({
+    labels: [],
+    datasets: []
+  });
 
   useEffect(() => {
     const fetchData = async () => {
@@ -214,6 +237,86 @@ const IndexPage = () => {
     };
 
     fetchData();
+  }, []);
+
+  useEffect(() => {
+    const fetchChartData = async () => {
+      try {
+        // Fetch data for the three days
+        const responses = await Promise.all([
+          axios.get('https://disease.sh/v3/covid-19/all'),
+          axios.get('https://disease.sh/v3/covid-19/all?yesterday=true'),
+          axios.get('https://disease.sh/v3/covid-19/all?twoDaysAgo=true')
+        ]);
+  
+        const [todayData, yesterdayData, twoDaysAgoData] = responses.map(response => response.data);
+  
+        // Set data for cases chart
+        setCasesChartData({
+          labels: ['Two Days Ago', 'Yesterday', 'Today'],
+          datasets: [
+            {
+              label: 'Global Total Cases',
+              data: [twoDaysAgoData.cases, yesterdayData.cases, todayData.cases],
+              fill: false,
+              borderColor: 'rgba(255, 99, 132, 1)',
+              borderWidth: 1,
+            },
+          ],
+        });
+  
+        // Set data for deaths chart
+        setDeathsChartData({
+          labels: ['Two Days Ago', 'Yesterday', 'Today'],
+          datasets: [
+            {
+              label: 'Global Total Deaths',
+              data: [twoDaysAgoData.deaths, yesterdayData.deaths, todayData.deaths],
+              fill: false,
+              borderColor: 'rgba(54, 162, 235, 1)',
+              borderWidth: 1,
+            },
+          ],
+        });
+        // Set data for recoveries chart
+      setRecoveriesChartData({
+        labels: ['Two Days Ago', 'Yesterday', 'Today'],
+        datasets: [
+          {
+            label: 'Global Total Recoveries',
+            data: [twoDaysAgoData.recovered, yesterdayData.recovered, todayData.recovered],
+            fill: false,
+            borderColor: 'rgba(75, 192, 192, 1)',
+            borderWidth: 1,
+          },
+        ],
+      });
+
+      // Calculate new cases for each day
+      const newCases = [
+        yesterdayData.cases - twoDaysAgoData.cases,
+        todayData.cases - yesterdayData.cases,
+      ];
+
+      // Set data for new cases bar chart
+      setNewCasesBarChartData({
+        labels: ['Yesterday', 'Today'],
+        datasets: [
+          {
+            label: 'New Global Cases',
+            data: newCases,
+            backgroundColor: 'rgba(153, 102, 255, 0.2)',
+            borderColor: 'rgba(153, 102, 255, 1)',
+            borderWidth: 1,
+          },
+        ],
+      });
+      } catch (error) {
+        console.error('Error fetching chart data:', error);
+      }
+    };
+  
+    fetchChartData();
   }, []);
 
   const mapSettings = {
@@ -264,34 +367,24 @@ const IndexPage = () => {
             </tbody>
           </table>
         </Container>
-        <Container
-          type="table"
-          className="text-center home-start table-container"
-        >
-          <h2 className="white-text">Countries</h2>
-          <table className="white-text">
-            <thead>
-              <tr>
-                <th>Country</th>
-                <th>Population</th>
-                <th>Cases</th>
-                <th>Cases Per Million</th>
-                <th>Deaths</th>
-              </tr>
-            </thead>
-            <tbody>
-              {covidData.map((countryData) => (
-                <tr key={countryData.country}>
-                  <td>{countryData.country}</td>
-                  <td>{countryData.population.toLocaleString()}</td>
-                  <td>{countryData.cases.toLocaleString()}</td>
-                  <td>{countryData.casesPerOneMillion.toLocaleString()}</td>
-                  <td>{countryData.deaths.toLocaleString()}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </Container>
+        <Container type="content" className="text-center home-start">
+      <h2 className="white-text">Global Total Cases Over Time</h2>
+      <Line data={casesChartData} />
+    </Container>
+
+    <Container type="content" className="text-center home-start">
+      <h2 className="white-text">Global Total Deaths Over Time</h2>
+      <Line data={deathsChartData} />
+    </Container>
+    <Container type="content" className="text-center home-start">
+      <h2 className="white-text">Global Total Recoveries Over Time</h2>
+      <Line data={recoveriesChartData} />
+    </Container>
+
+    <Container type="content" className="text-center home-start">
+      <h2 className="white-text">New Global Cases</h2>
+      <Bar data={newCasesBarChartData} />
+    </Container>
         <Container
           type="table"
           className="text-center home-start table-container"
