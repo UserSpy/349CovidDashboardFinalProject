@@ -1,8 +1,8 @@
 header {
-
   width: 100%;
-  color: $white;
-  background-color: $gatsby-purple;
+  color: #ffffff; /* White text color */
+  background-color: #333333; /* Dark gray background color */
+  font-family: Georgia, serif; /* Specify Georgia as the font, followed by a generic serif font as a fallback */
 
   .container {
     display: flex;
@@ -26,7 +26,7 @@ header {
   }
 
   a {
-    color: lighten($gatsby-purple, 50);
+    color: #cccccc; /* Light gray link color */
     text-decoration: none;
     padding: 0 .5em;
   }
@@ -42,5 +42,5 @@ header {
     font-weight: bold;
     padding: 0 .5em;
   }
-
 }
+

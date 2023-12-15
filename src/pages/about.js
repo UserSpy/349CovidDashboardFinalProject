@@ -18,20 +18,20 @@ const SecondPage = () => {
       <Container type="content">
         <h1>About</h1>
 
-        <h2>{companyName}</h2>
-        <p>{siteDescription}</p>
+        <p>Covid Stats</p>
+
+        <p></p>
+
+        <h2>Contributers</h2>
+        <p>- Mark Raden</p>
+        <p>- John Rehagen</p>
+        <p>- Backpacks</p>
+        <p>- Elizabeth Steubs</p>
+
         <p>
           <a href="https://github.com/UserSpy/349CovidDashboardFinalProject">
-            View on Github
+            View our Github
           </a>
-        </p>
-
-        <h2>Base Code By</h2>
-        <p>
-          <a href={authorUrl}>{authorName}</a>
-        </p>
-        <p>
-          <a href={companyUrl}>View on Github </a>
         </p>
       </Container>
     </Layout>
