@@ -172,6 +172,7 @@ const IndexPage = () => {
   const [covidData, setCovidData] = useState([]);
   const [allData, setAllData] = useState([]);
   const [statesData, setStatesData] = useState([]);
+  const [yesterdayData, setYesterdayData] = useState([]);
   const markerRef = useRef();
   const [casesChartData, setCasesChartData] = useState({
     labels: [],
@@ -231,6 +232,22 @@ const IndexPage = () => {
         );
         console.log(response.data);
         setStatesData(response.data);
+      } catch (error) {
+        console.log(error);
+      }
+    };
+
+    fetchData();
+  }, []);
+
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const response = await axios.get(
+          "https://disease.sh/v3/covid-19/all?yesterday=true"
+        );
+        console.log(response.data);
+        setYesterdayData(response.data);
       } catch (error) {
         console.log(error);
       }
@@ -385,6 +402,64 @@ const IndexPage = () => {
       <h2 className="white-text">New Global Cases</h2>
       <Bar data={newCasesBarChartData} />
     </Container>
+    <Container
+          type="table"
+          className="text-center home-start table-container"
+        >
+          <h2 className="white-text">Today's Cases</h2>
+          <table className="white-text">
+            <thead>
+              <tr>
+                <th>Cases</th>
+                <th>Deaths</th>
+                <th>Recovered</th>
+              </tr>
+            </thead>
+            <tbody>
+              <td>
+                {allData.todayCases ? allData.todayCases.toLocaleString() : allData.todayCases}
+              </td>
+              <td>
+                {yesterdayData.todayDeaths
+                  ? yesterdayData.todayDeaths.toLocaleString()
+                  : yesterdayData.todayDeaths}
+              </td>
+              <td>
+                {allData.todayRecovered
+                  ? allData.todayRecovered.toLocaleString()
+                  : allData.todayRecovered}
+              </td>
+            </tbody>
+          </table>
+        </Container>
+    <Container
+          type="table"
+          className="text-center home-start table-container"
+        >
+          <h2 className="white-text">Countries</h2>
+          <table className="white-text">
+            <thead>
+              <tr>
+                <th>Country</th>
+                <th>Cases</th>
+                <th>Deaths</th>
+                <th>Recovered</th>
+                <th>Cases Per Million</th>
+              </tr>
+            </thead>
+            <tbody>
+              {covidData.map((countryData) => (
+                <tr key={countryData.country}>
+                  <td>{countryData.country}</td>
+                  <td>{countryData.cases.toLocaleString()}</td>
+                  <td>{countryData.deaths.toLocaleString()}</td>
+                  <td>{countryData.recovered.toLocaleString()}</td>
+                  <td>{countryData.casesPerOneMillion.toLocaleString()}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </Container>
         <Container
           type="table"
           className="text-center home-start table-container"
