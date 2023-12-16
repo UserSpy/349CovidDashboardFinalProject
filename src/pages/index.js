@@ -29,7 +29,7 @@ const ZOOM = 10;
 
 const timeToZoom = 2000;
 Chart.register(...registerables);
-function countryPointToLayer(feature = {}, latlng) {
+function countryPointToLayer(feature = {}, latlng, setSelectedData) {
   const { properties = {} } = feature;
   let updatedFormatted;
   let casesString;
@@ -72,7 +72,7 @@ function countryPointToLayer(feature = {}, latlng) {
   });
 }
 
-function statePointToLayer(feature = {}, latlng) {
+function statePointToLayer(feature = {}, latlng, setSelectedData) {
   const { properties = {} } = feature;
   let updatedFormatted;
   let casesString;
@@ -99,16 +99,22 @@ function statePointToLayer(feature = {}, latlng) {
     </span>
   `;
 
-  return L.marker(latlng, {
+  const marker = L.marker(latlng, {
     icon: L.divIcon({
       className: "icon",
       html,
     }),
     riseOnHover: true,
   });
+  marker.on('click', () => {
+    console.log("Marker clicked", feature.properties);
+    //setSelectedData(feature.properties);
+  });
+
+  return marker;
 }
 
-const MapEffect = ({ markerRef }) => {
+const MapEffect = ({ markerRef, setSelectedData }) => {
   console.log("in MapEffect...");
   const map = useMap();
   const ZOOM_THRESHOLD = 5; // Set an appropriate zoom level
@@ -185,8 +191,8 @@ const MapEffect = ({ markerRef }) => {
       console.log("geoJson", geoJson);
 
       const geoJsonLayers = new L.GeoJSON(geoJson, {
-        pointToLayer: countryPointToLayer,
-      });
+        pointToLayer: (feature, latlng) => countryPointToLayer(feature, latlng, setSelectedData),
+});
       var _map = markerRef.current._map;
       geoJsonLayers.addTo(_map);
 
@@ -222,7 +228,8 @@ MapEffect.propTypes = {
   markerRef: PropTypes.object,
 };
 
-async function loadAndShowStatePins(map) {
+async function loadAndShowStatePins(map, setSelectedData) {
+
   // Clear existing layers
   map.eachLayer(layer => {
     if (layer instanceof L.Marker) {
@@ -264,7 +271,7 @@ async function loadAndShowStatePins(map) {
     };
 
     const geoJsonLayers = new L.GeoJSON(geoJson, {
-      pointToLayer: statePointToLayer,
+      pointToLayer: (feature, latlng) => statePointToLayer(feature, latlng, setSelectedData),
     });
 
     geoJsonLayers.addTo(map);
@@ -325,6 +332,7 @@ const IndexPage = () => {
     labels: [],
     datasets: []
   });
+  const [selectedData, setSelectedData] = useState(null);
   
   const [deathsChartData, setDeathsChartData] = useState({
     labels: [],
@@ -386,6 +394,10 @@ const IndexPage = () => {
 
     fetchData();
   }, []);
+
+  useEffect(() => {
+  console.log("Selected Data:", selectedData);
+}, [selectedData]);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -498,9 +510,34 @@ const IndexPage = () => {
         {/* do not delete MapEffect and Marker
               with current code or axios will not run */}
         <Map {...mapSettings}>
-          <MapEffect markerRef={markerRef} />
+        <MapEffect markerRef={markerRef} setSelectedData={setSelectedData} />
+
+
           <Marker ref={markerRef} position={CENTER} />
         </Map>
+        <Container type="table" className="text-center home-start table-container">
+  <h2 className="white-text">COVID-19 Case Data</h2>
+  {selectedData && (
+    <table className="white-text">
+      <thead>
+        <tr>
+          <th>State</th>
+          <th>Total Cases</th>
+          <th>Total Deaths</th>
+          <th>Total Recovered</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>{selectedData.state}</td>
+          <td>{selectedData.cases.toLocaleString()}</td>
+          <td>{selectedData.deaths.toLocaleString()}</td>
+          <td>{selectedData.recovered ? selectedData.recovered.toLocaleString() : 'N/A'}</td>
+        </tr>
+      </tbody>
+    </table>
+  )}
+</Container>
         <Container
           type="table"
           className="text-center home-start table-container"
