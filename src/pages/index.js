@@ -15,6 +15,8 @@ import Container from "components/Container";
 import Map from "components/Map";
 import Dark from "../assets/stylesheets/components/dark.css";
 import table from "../assets/stylesheets/components/table.css";
+import stateGeolocation from '../data/stateloc.json';
+
 
 import axios from "axios";
 
@@ -70,10 +72,46 @@ function countryPointToLayer(feature = {}, latlng) {
   });
 }
 
+function statePointToLayer(feature = {}, latlng) {
+  const { properties = {} } = feature;
+  let updatedFormatted;
+  let casesString;
+
+  const { state, cases, deaths, active } = properties;
+
+  casesString = `${cases}`;
+
+  if (cases > 1000) {
+    casesString = `${casesString.slice(0, -3)}k+`;
+  }
+
+  const html = `
+    <span class="icon-marker">
+      <span class="icon-marker-tooltip">
+        <h2>${state}</h2>
+        <ul>
+          <li><strong>Active:</strong> ${active}</li>
+          <li><strong>Confirmed:</strong> ${cases}</li>
+          <li><strong>Deaths:</strong> ${deaths}</li>
+        </ul>
+      </span>
+      ${casesString}
+    </span>
+  `;
+
+  return L.marker(latlng, {
+    icon: L.divIcon({
+      className: "icon",
+      html,
+    }),
+    riseOnHover: true,
+  });
+}
+
 const MapEffect = ({ markerRef }) => {
   console.log("in MapEffect...");
   const map = useMap();
-
+  const ZOOM_THRESHOLD = 5; // Set an appropriate zoom level
   useEffect(() => {
     if (!markerRef.current || !map) return;
 
@@ -158,6 +196,23 @@ const MapEffect = ({ markerRef }) => {
         await promiseToFlyTo(map, { zoom: ZOOM, center: location });
       }, timeToZoom);
     })();
+
+    const zoomHandler = () => {
+      const currentZoom = map.getZoom();
+      if (currentZoom >= ZOOM_THRESHOLD) {
+        loadAndShowStatePins(map);
+      } else {
+        loadAndShowCountryPins(map);
+      }
+    };
+
+    map.on('zoomend', zoomHandler);
+
+    // Cleanup
+    return () => {
+      map.off('zoomend', zoomHandler);
+    };
+
   }, [map, markerRef]);
 
   return null;
@@ -167,11 +222,104 @@ MapEffect.propTypes = {
   markerRef: PropTypes.object,
 };
 
+async function loadAndShowStatePins(map) {
+  // Clear existing layers
+  map.eachLayer(layer => {
+    if (layer instanceof L.Marker) {
+      map.removeLayer(layer);
+    }
+  });
+
+  // Fetch state COVID data
+  try {
+    const response = await axios.get('https://disease.sh/v3/covid-19/states');
+    const covidStatesData = response.data;
+
+    // Merge COVID data with geolocation data
+    const mergedData = covidStatesData.map(covidState => {
+      const geoState = stateGeolocation.find(geo => geo.state === covidState.state);
+      if (!geoState) {
+        console.warn(`No geolocation found for state: ${covidState.state}`);
+        return null; // Skip states without geolocation data
+      }
+      return {
+        ...covidState,
+        latitude: geoState.latitude,
+        longitude: geoState.longitude
+      };
+    }).filter(state => state !== null); // Remove states with no geolocation data
+
+    const geoJson = {
+      type: "FeatureCollection",
+      features: mergedData.map((state = {}) => ({
+        type: "Feature",
+        properties: {
+          ...state,
+        },
+        geometry: {
+          type: "Point",
+          coordinates: [state.longitude, state.latitude],
+        },
+      })),
+    };
+
+    const geoJsonLayers = new L.GeoJSON(geoJson, {
+      pointToLayer: statePointToLayer,
+    });
+
+    geoJsonLayers.addTo(map);
+  } catch (error) {
+    console.error('Error fetching state data:', error);
+  }
+}
+
+
+async function loadAndShowCountryPins(map) {
+  // Clear existing layers
+  map.eachLayer(layer => {
+    if (layer instanceof L.Marker) {
+      map.removeLayer(layer);
+    }
+  });
+
+  // Fetch country data
+  try {
+    const response = await axios.get('https://disease.sh/v3/covid-19/countries');
+    const countries = response.data;
+
+    const geoJson = {
+      type: "FeatureCollection",
+      features: countries.map((country = {}) => {
+        const { countryInfo = {} } = country;
+        return {
+          type: "Feature",
+          properties: {
+            ...country,
+          },
+          geometry: {
+            type: "Point",
+            coordinates: [countryInfo.long, countryInfo.lat],
+          },
+        };
+      }),
+    };
+
+    const geoJsonLayers = new L.GeoJSON(geoJson, {
+      pointToLayer: countryPointToLayer,
+    });
+
+    geoJsonLayers.addTo(map);
+  } catch (error) {
+    console.error('Error fetching country data:', error);
+  }
+}
+
 const IndexPage = () => {
   console.log("in IndexPage, before useRef");
   const [covidData, setCovidData] = useState([]);
   const [allData, setAllData] = useState([]);
   const [statesData, setStatesData] = useState([]);
+  const [yesterdayData, setYesterdayData] = useState([]);
   const markerRef = useRef();
   const [casesChartData, setCasesChartData] = useState({
     labels: [],
@@ -231,6 +379,22 @@ const IndexPage = () => {
         );
         console.log(response.data);
         setStatesData(response.data);
+      } catch (error) {
+        console.log(error);
+      }
+    };
+
+    fetchData();
+  }, []);
+
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const response = await axios.get(
+          "https://disease.sh/v3/covid-19/all?yesterday=true"
+        );
+        console.log(response.data);
+        setYesterdayData(response.data);
       } catch (error) {
         console.log(error);
       }
@@ -385,6 +549,64 @@ const IndexPage = () => {
       <h2 className="white-text">New Global Cases</h2>
       <Bar data={newCasesBarChartData} />
     </Container>
+    <Container
+          type="table"
+          className="text-center home-start table-container"
+        >
+          <h2 className="white-text">Today's Cases</h2>
+          <table className="white-text">
+            <thead>
+              <tr>
+                <th>Cases</th>
+                <th>Deaths</th>
+                <th>Recovered</th>
+              </tr>
+            </thead>
+            <tbody>
+              <td>
+                {allData.todayCases ? allData.todayCases.toLocaleString() : allData.todayCases}
+              </td>
+              <td>
+                {yesterdayData.todayDeaths
+                  ? yesterdayData.todayDeaths.toLocaleString()
+                  : yesterdayData.todayDeaths}
+              </td>
+              <td>
+                {allData.todayRecovered
+                  ? allData.todayRecovered.toLocaleString()
+                  : allData.todayRecovered}
+              </td>
+            </tbody>
+          </table>
+        </Container>
+    <Container
+          type="table"
+          className="text-center home-start table-container"
+        >
+          <h2 className="white-text">Countries</h2>
+          <table className="white-text">
+            <thead>
+              <tr>
+                <th>Country</th>
+                <th>Cases</th>
+                <th>Deaths</th>
+                <th>Recovered</th>
+                <th>Cases Per Million</th>
+              </tr>
+            </thead>
+            <tbody>
+              {covidData.map((countryData) => (
+                <tr key={countryData.country}>
+                  <td>{countryData.country}</td>
+                  <td>{countryData.cases.toLocaleString()}</td>
+                  <td>{countryData.deaths.toLocaleString()}</td>
+                  <td>{countryData.recovered.toLocaleString()}</td>
+                  <td>{countryData.casesPerOneMillion.toLocaleString()}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </Container>
         <Container
           type="table"
           className="text-center home-start table-container"
