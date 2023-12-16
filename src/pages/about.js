@@ -25,7 +25,7 @@ const SecondPage = () => {
         <h2>Contributers</h2>
         <p>- Mark Raden</p>
         <p>- John Rehagen</p>
-        <p>- Backpacks</p>
+        <p>- Anthony LaPan</p>
         <p>- Elizabeth Steubs</p>
 
         <p>
